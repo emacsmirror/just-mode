@@ -241,10 +241,201 @@ Argument N number of untabs to perform"
   ;; Indentation
   (setq-local indent-line-function 'just-indent-line)
   (local-set-key (kbd "DEL") #'just-backspace-whitespace-to-tab-stop)
-  (local-set-key (kbd "<backtab>") #'just-untab-region))
+  (local-set-key (kbd "<backtab>") #'just-untab-region)
+  (local-set-key (kbd "C-c C-'") #'just-edit-recipe))
+
+;;; Recipe body editing
+
+(defvar-local just-edit--original-buffer nil)
+(put 'just-edit--original-buffer 'permanent-local t)
+
+(defvar-local just-edit--beg-marker nil)
+(put 'just-edit--beg-marker 'permanent-local t)
+
+(defvar-local just-edit--end-marker nil)
+(put 'just-edit--end-marker 'permanent-local t)
+
+(defvar-local just-edit--indentation nil)
+(put 'just-edit--indentation 'permanent-local t)
+
+(defvar-local just-edit--recipe-name nil)
+(put 'just-edit--recipe-name 'permanent-local t)
+
+(defun just--find-recipe-bounds ()
+  "Find the bounds of the recipe at point.
+Returns (recipe-name body-start body-end) or nil if not in a recipe."
+  (save-excursion
+    (let ((start-pos (point))
+          task-name body-start body-end)
+
+      ;; Find the task we're currently in using the same regex as imenu
+      ;; Go back to find a task line
+      (while (and (not (bobp))
+                  (not (looking-at "^\\(?:alias +\\)?@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
+        (forward-line -1))
+
+      ;; If we found a task line
+      (when (looking-at "^\\(?:alias +\\)?@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")
+        (setq task-name (match-string 1))
+        (setq body-start (line-beginning-position 2))
+
+        ;; Find the end of this task by looking for the next task
+        (forward-line 1)
+        (while (and (not (eobp))
+                    (not (looking-at "^\\(?:alias +\\)?@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
+          (forward-line 1))
+
+        ;; Go back to find the last non-empty line before the next task
+        (forward-line -1)
+        (while (and (> (point) body-start)
+                    (looking-at "^\\s-*$"))
+          (forward-line -1))
+        (setq body-end (line-end-position))
+
+        ;; Ensure body-end is at least at body-start
+        (when (<= body-end body-start)
+          (setq body-end (save-excursion
+                           (goto-char body-start)
+                           (line-end-position))))
+
+        ;; Check if original point was within the task body
+        (when (and (>= start-pos body-start)
+                   (<= start-pos body-end))
+          (list task-name body-start body-end))))))
+
+(defun just--calculate-indentation (start end)
+  "Calculate the common indentation for recipe body between START and END."
+  (save-excursion
+    (goto-char start)
+    (let ((min-indent most-positive-fixnum))
+      (while (< (point) end)
+        (when (not (looking-at "^\\s-*$"))  ; skip empty lines
+          (setq min-indent (min min-indent (current-indentation))))
+        (forward-line 1))
+      (if (= min-indent most-positive-fixnum) 0 min-indent))))
+
+(defun just--remove-indentation (content indentation)
+  "Remove INDENTATION spaces from each line of CONTENT."
+  (with-temp-buffer
+    (insert content)
+    (goto-char (point-min))
+    (while (not (eobp))
+      (unless (looking-at "^\\s-*$")  ; don't modify empty lines
+        (when (>= (current-indentation) indentation)
+          (delete-char indentation)))
+      (forward-line 1))
+    (buffer-string)))
+
+(defun just--add-indentation (content indentation)
+  "Add INDENTATION spaces to each line of CONTENT."
+  (with-temp-buffer
+    (insert content)
+    (goto-char (point-min))
+    (let ((indent-str (make-string indentation ?\s)))
+      (while (not (eobp))
+        (unless (looking-at "^\\s-*$")  ; don't modify empty lines
+          (insert indent-str))
+        (forward-line 1)))
+    (buffer-string)))
+
+(defun just--detect-language-mode (content)
+  "Detect the appropriate major mode for CONTENT.
+If content starts with shebang, use normal-mode, otherwise sh-mode."
+  (if (string-match "^\\s-*#!" content)
+      'normal-mode
+    'sh-mode))
+
+(defun just-edit-recipe ()
+  "Edit the recipe body at point in a dedicated buffer."
+  (interactive)
+  (let ((recipe-info (just--find-recipe-bounds)))
+    (unless recipe-info
+      (user-error "Not in a recipe body"))
+
+    (let* ((recipe-name (nth 0 recipe-info))
+           (body-start (nth 1 recipe-info))
+           (body-end (nth 2 recipe-info))
+           (original-buffer (current-buffer))
+           (indentation (just--calculate-indentation body-start body-end))
+           (content (buffer-substring-no-properties body-start body-end))
+           (clean-content (just--remove-indentation content indentation))
+           (edit-buffer (generate-new-buffer (format "*Just Recipe: %s*" recipe-name))))
+
+      ;; Switch to edit buffer
+      (pop-to-buffer edit-buffer)
+
+      ;; Insert content and set up buffer
+      (insert clean-content)
+      (goto-char (point-min))
+
+      ;; Detect and set appropriate mode
+      (funcall (just--detect-language-mode clean-content))
+
+      ;; Set up buffer-local variables
+      (setq just-edit--original-buffer original-buffer)
+      (setq just-edit--beg-marker (with-current-buffer original-buffer
+                                    (copy-marker body-start)))
+      (setq just-edit--end-marker (with-current-buffer original-buffer
+                                    (copy-marker body-end t)))
+      (setq just-edit--indentation indentation)
+      (setq just-edit--recipe-name recipe-name)
+
+      ;; Set up key bindings
+      (local-set-key (kbd "C-x C-s") #'just-edit-save-and-exit)
+      (local-set-key (kbd "C-c C-'") #'just-edit-preview)
+      (local-set-key (kbd "C-c C-k") #'just-edit-abort)
+
+      ;; Set up save hook
+      (add-hook 'write-contents-functions #'just-edit-save-and-exit nil t)
+
+      ;; Show helpful message
+      (message "Edit recipe '%s'. C-c C-' to preview, C-x C-s to save, C-c C-k to abort" recipe-name))))
+
+(defun just-edit-save-and-exit ()
+  "Save the edited recipe back to the original buffer and exit."
+  (interactive)
+  (just--sync-to-original t)
+  (quit-window t))
+
+(defun just-edit-preview ()
+  "Preview changes by syncing to original buffer without saving."
+  (interactive)
+  (just--sync-to-original nil)
+  (message "Previewed changes in original buffer"))
+
+(defun just-edit-abort ()
+  "Abort editing without saving changes."
+  (interactive)
+  (quit-window t))
+
+(defun just--sync-to-original (save-file)
+  "Sync the edited content back to the original buffer.
+If SAVE-FILE is non-nil, also save the original buffer."
+  (unless (and just-edit--original-buffer
+               (buffer-live-p just-edit--original-buffer))
+    (error "Original buffer no longer exists"))
+
+  (let ((content (buffer-string))
+        (original-buf just-edit--original-buffer)
+        (beg just-edit--beg-marker)
+        (end just-edit--end-marker)
+        (indent just-edit--indentation))
+
+    (with-current-buffer original-buf
+      (save-excursion
+        (let ((indented-content (just--add-indentation content indent)))
+          (goto-char beg)
+          (delete-region beg end)
+          (insert indented-content)
+          (set-marker end (point))))
+
+      (when save-file
+        (save-buffer)))
+
+    (set-buffer-modified-p nil)
+    t))
 
 
-
 (provide 'just-mode)
 
 ;;;###autoload
