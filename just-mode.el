@@ -368,6 +368,13 @@ If content starts with shebang, use normal-mode, otherwise sh-mode."
       (insert clean-content)
       (goto-char (point-min))
 
+      ;; Ensure buffer ends with newline
+      (goto-char (point-max))
+      (unless (and (> (point-max) (point-min))
+                   (= (char-before) ?\n))
+        (insert "\n"))
+      (goto-char (point-min))
+
       ;; Detect and set appropriate mode
       (funcall (just--detect-language-mode clean-content))
 
