@@ -340,8 +340,8 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
 
 (defun just-src-edit--detect-language-mode (content)
   "Detect the appropriate major mode for CONTENT.
-If content starts with shebang, use normal-mode, otherwise sh-mode."
-  (if (string-match "^\\s-*#!" content)
+If content starts with shebang, use `normal-mode', otherwise `sh-mode'."
+  (if (string-match "^#!" content)
       'normal-mode
     'sh-mode))
 
