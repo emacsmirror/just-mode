@@ -316,27 +316,29 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
 
 (defun just-src-edit--remove-indentation (content indentation)
   "Remove INDENTATION spaces from each line of CONTENT."
-  (with-temp-buffer
-    (insert content)
-    (goto-char (point-min))
-    (while (not (eobp))
-      (unless (looking-at "^\\s-*$")  ; don't modify empty lines
-        (when (>= (current-indentation) indentation)
-          (delete-char indentation)))
-      (forward-line 1))
-    (buffer-string)))
+  (let ((lines (string-lines content)))
+    (mapconcat
+     (lambda (line)
+       (if (string-match-p "^\\s-*$" line)
+           line
+         (if (and (>= (length line) indentation)
+                  (string-match-p (concat "^ \\{" (number-to-string indentation) "\\}") line))
+             (substring line indentation)
+           line)))
+     lines
+     "\n")))
 
 (defun just-src-edit--add-indentation (content indentation)
   "Add INDENTATION spaces to each line of CONTENT."
-  (with-temp-buffer
-    (insert content)
-    (goto-char (point-min))
-    (let ((indent-str (make-string indentation ?\s)))
-      (while (not (eobp))
-        (unless (looking-at "^\\s-*$")  ; don't modify empty lines
-          (insert indent-str))
-        (forward-line 1)))
-    (buffer-string)))
+  (let ((lines (string-lines content))
+        (indent-str (make-string indentation ?\s)))
+    (mapconcat
+     (lambda (line)
+       (if (string-match-p "^\\s-*$" line)
+           line
+         (concat indent-str line)))
+     lines
+     "\n")))
 
 (defun just-src-edit--detect-language-mode (content)
   "Detect the appropriate major mode for CONTENT.
