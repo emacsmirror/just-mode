@@ -355,13 +355,6 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
      lines
      "\n")))
 
-(defun just-src-edit--detect-language-mode (content)
-  "Detect the appropriate major mode for CONTENT.
-If content starts with shebang, use `normal-mode', otherwise `sh-mode'."
-  (if (string-match "^#!" content)
-      'normal-mode
-    'sh-mode))
-
 (defun just-src-edit ()
   "Edit the recipe body at point in a dedicated buffer."
   (interactive)
@@ -393,7 +386,9 @@ If content starts with shebang, use `normal-mode', otherwise `sh-mode'."
       (goto-char (point-min))
 
       ;; Detect and set appropriate mode
-      (funcall (just-src-edit--detect-language-mode clean-content))
+      (if (string-match "^#!" clean-content)
+          (normal-mode)
+        (sh-mode))
 
       ;; Set up buffer-local variables
       (setq just-src-edit--original-buffer original-buffer)
