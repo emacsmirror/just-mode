@@ -271,18 +271,18 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
       ;; Find the task we're currently in using the same regex as imenu
       ;; Go back to find a task line
       (while (and (not (bobp))
-                  (not (looking-at "^\\(?:alias +\\)?@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
+                  (not (looking-at "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
         (forward-line -1))
 
       ;; If we found a task line
-      (when (looking-at "^\\(?:alias +\\)?@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")
+      (when (looking-at "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")
         (setq task-name (match-string 1))
         (setq body-start (line-beginning-position 2))
 
         ;; Find the end of this task by looking for the next task
         (forward-line 1)
         (while (and (not (eobp))
-                    (not (looking-at "^\\(?:alias +\\)?@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
+                    (not (looking-at "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
           (forward-line 1))
 
         ;; Go back to find the last non-empty line before the next task
@@ -381,27 +381,27 @@ If content starts with shebang, use normal-mode, otherwise sh-mode."
       (setq just-edit--recipe-name recipe-name)
 
       ;; Set up key bindings
-      (local-set-key (kbd "C-x C-s") #'just-edit-save-and-exit)
-      (local-set-key (kbd "C-c C-'") #'just-edit-preview)
+      (local-set-key (kbd "C-x C-s") #'just-edit-save)
+      (local-set-key (kbd "C-c C-'") #'just-edit-sync-and-exit)
       (local-set-key (kbd "C-c C-k") #'just-edit-abort)
 
       ;; Set up save hook
-      (add-hook 'write-contents-functions #'just-edit-save-and-exit nil t)
+      (add-hook 'write-contents-functions #'just-edit-save nil t)
 
       ;; Show helpful message
-      (message "Edit recipe '%s'. C-c C-' to preview, C-x C-s to save, C-c C-k to abort" recipe-name))))
+      (message "Edit recipe '%s'. C-c C-' to sync and exit, C-x C-s to save, C-c C-k to abort" recipe-name))))
 
-(defun just-edit-save-and-exit ()
-  "Save the edited recipe back to the original buffer and exit."
+(defun just-edit-save ()
+  "Save the edited recipe back to the original buffer and file."
   (interactive)
-  (just--sync-to-original t)
-  (quit-window t))
+  (just--sync-to-original t))
 
-(defun just-edit-preview ()
-  "Preview changes by syncing to original buffer without saving."
+(defun just-edit-sync-and-exit ()
+  "Sync changes to original buffer and exit edit buffer."
   (interactive)
   (just--sync-to-original nil)
-  (message "Previewed changes in original buffer"))
+  (quit-window t)
+  (message "Synced changes to original buffer"))
 
 (defun just-edit-abort ()
   "Abort editing without saving changes."
