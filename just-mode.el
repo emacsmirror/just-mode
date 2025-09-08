@@ -410,7 +410,15 @@ If content starts with shebang, use `normal-mode', otherwise `sh-mode'."
       (add-hook 'write-contents-functions #'just-src-edit-save nil t)
 
       ;; Show helpful message
-      (message "Edit recipe '%s'. C-c ' to sync and exit, C-x C-s to save, C-c C-k to abort" recipe-name))))
+      (message "Edit recipe '%s'. %s" recipe-name (just-src-edit--describe-bindings)))))
+
+(defun just-src-edit--describe-bindings ()
+  "Return a string describing the current key bindings for just-src-edit-mode."
+  (let ((sync-key (substitute-command-keys "\\[just-src-edit-sync-and-exit]"))
+        (save-key (substitute-command-keys "\\[just-src-edit-save]"))
+        (abort-key (substitute-command-keys "\\[just-src-edit-abort]")))
+    (format "%s to sync and exit, %s to save, %s to abort"
+            sync-key save-key abort-key)))
 
 (defun just-src-edit-save ()
   "Save the edited recipe back to the original buffer and file."
