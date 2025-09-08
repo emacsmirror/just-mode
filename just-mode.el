@@ -163,7 +163,7 @@ Argument N number of untabs to perform"
   (let ((exit-code (call-process just-executable nil nil nil "--unstable" "--fmt")))
     (if (eq exit-code 0)
         (revert-buffer :ignore-auto :noconfirm)
-        (message "Formatted")
+      (message "Formatted")
       (message "Format failed with exit code %s" exit-code))))
 
 ;; from https://www.emacswiki.org/emacs/BackspaceWhitespaceToTabStop
@@ -402,9 +402,6 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
       ;; Enable the minor mode for keybindings
       (just-src-edit-mode 1)
 
-      ;; Set up save hook
-      (add-hook 'write-contents-functions #'just-src-edit-save nil t)
-
       ;; Show helpful message
       (message "Edit recipe '%s'. %s" recipe-name (just-src-edit--describe-bindings)))))
 
@@ -457,8 +454,7 @@ If SAVE-FILE is non-nil, also save the original buffer."
       (when save-file
         (save-buffer)))
 
-    (set-buffer-modified-p nil)
-    t))
+    (set-buffer-modified-p nil)))
 
 
 (provide 'just-mode)
