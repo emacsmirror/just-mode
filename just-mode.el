@@ -246,6 +246,20 @@ Argument N number of untabs to perform"
 
 ;;; Recipe body editing
 
+(defvar just-src-edit-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-x C-s") #'just-src-edit-save)
+    (define-key map (kbd "C-c '") #'just-src-edit-sync-and-exit)
+    (define-key map (kbd "C-c C-k") #'just-src-edit-abort)
+    map)
+  "Keymap for `just-src-edit-mode'.")
+
+(define-minor-mode just-src-edit-mode
+  "Minor mode for editing Just recipe bodies."
+  :init-value nil
+  :lighter " Just-Edit"
+  :keymap just-src-edit-mode-map)
+
 (defvar-local just-src-edit--original-buffer nil)
 (put 'just-src-edit--original-buffer 'permanent-local t)
 
@@ -389,10 +403,8 @@ If content starts with shebang, use `normal-mode', otherwise `sh-mode'."
       (setq just-src-edit--indentation indentation)
       (setq just-src-edit--recipe-name recipe-name)
 
-      ;; Set up key bindings
-      (local-set-key (kbd "C-x C-s") #'just-src-edit-save)
-      (local-set-key (kbd "C-c '") #'just-src-edit-sync-and-exit)
-      (local-set-key (kbd "C-c C-k") #'just-src-edit-abort)
+      ;; Enable the minor mode for keybindings
+      (just-src-edit-mode 1)
 
       ;; Set up save hook
       (add-hook 'write-contents-functions #'just-src-edit-save nil t)
