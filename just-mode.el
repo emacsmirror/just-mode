@@ -244,7 +244,7 @@ Argument N number of untabs to perform"
   (local-set-key (kbd "<backtab>") #'just-untab-region)
   (local-set-key (kbd "C-c '") #'just-src-edit))
 
-;;; Recipe body editing
+;;; Task body editing
 
 (defvar just-src-edit-mode-map
   (let ((map (make-sparse-keymap)))
@@ -255,7 +255,7 @@ Argument N number of untabs to perform"
   "Keymap for `just-src-edit-mode'.")
 
 (define-minor-mode just-src-edit-mode
-  "Minor mode for editing Just recipe bodies."
+  "Minor mode for editing Just task bodies."
   :init-value nil
   :lighter " Just-Edit"
   :keymap just-src-edit-mode-map)
@@ -272,12 +272,12 @@ Argument N number of untabs to perform"
 (defvar-local just-src-edit--indentation nil)
 (put 'just-src-edit--indentation 'permanent-local t)
 
-(defvar-local just-src-edit--recipe-name nil)
-(put 'just-src-edit--recipe-name 'permanent-local t)
+(defvar-local just-src-edit--task-name nil)
+(put 'just-src-edit--task-name 'permanent-local t)
 
-(defun just-src-edit--find-recipe-bounds ()
-  "Find the bounds of the recipe at point.
-Returns (recipe-name body-start body-end) or nil if not in a recipe."
+(defun just-src-edit--find-task-bounds ()
+  "Find the bounds of the task at point.
+Returns (task-name body-start body-end) or nil if not in a task."
   (save-excursion
     (let ((start-pos (point))
           (task-regexp "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")
@@ -319,7 +319,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
           (list task-name body-start body-end))))))
 
 (defun just-src-edit--calculate-indentation (start end)
-  "Calculate the common indentation for recipe body between START and END."
+  "Calculate the common indentation for task body between START and END."
   (save-excursion
     (goto-char start)
     (let ((min-indent most-positive-fixnum))
@@ -356,20 +356,20 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
      "\n")))
 
 (defun just-src-edit ()
-  "Edit the recipe body at point in a dedicated buffer."
+  "Edit the task body at point in a dedicated buffer."
   (interactive)
-  (let ((recipe-info (just-src-edit--find-recipe-bounds)))
-    (unless recipe-info
-      (user-error "Not in a recipe body"))
+  (let ((task-info (just-src-edit--find-task-bounds)))
+    (unless task-info
+      (user-error "Not in a task body"))
 
-    (let* ((recipe-name (nth 0 recipe-info))
-           (body-start (nth 1 recipe-info))
-           (body-end (nth 2 recipe-info))
+    (let* ((task-name (nth 0 task-info))
+           (body-start (nth 1 task-info))
+           (body-end (nth 2 task-info))
            (original-buffer (current-buffer))
            (indentation (just-src-edit--calculate-indentation body-start body-end))
            (content (buffer-substring-no-properties body-start body-end))
            (clean-content (just-src-edit--remove-indentation content indentation))
-           (edit-buffer (generate-new-buffer (format "*Just Recipe: %s*" recipe-name))))
+           (edit-buffer (generate-new-buffer (format "*Just Task: %s*" task-name))))
 
       ;; Switch to edit buffer
       (pop-to-buffer edit-buffer)
@@ -397,13 +397,13 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
       (setq just-src-edit--end-marker (with-current-buffer original-buffer
                                         (copy-marker body-end t)))
       (setq just-src-edit--indentation indentation)
-      (setq just-src-edit--recipe-name recipe-name)
+      (setq just-src-edit--task-name task-name)
 
       ;; Enable the minor mode for keybindings
       (just-src-edit-mode 1)
 
       ;; Show helpful message
-      (message "Edit recipe '%s'. %s" recipe-name (just-src-edit--describe-bindings)))))
+      (message "Edit task '%s'. %s" task-name (just-src-edit--describe-bindings)))))
 
 (defun just-src-edit--describe-bindings ()
   "Return a string describing the current key bindings for just-src-edit-mode."
@@ -414,7 +414,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
             sync-key save-key abort-key)))
 
 (defun just-src-edit-save ()
-  "Save the edited recipe back to the original buffer and file."
+  "Save the edited task back to the original buffer and file."
   (interactive)
   (just-src-edit--sync-to-original t))
 
