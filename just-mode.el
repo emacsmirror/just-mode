@@ -242,26 +242,26 @@ Argument N number of untabs to perform"
   (setq-local indent-line-function 'just-indent-line)
   (local-set-key (kbd "DEL") #'just-backspace-whitespace-to-tab-stop)
   (local-set-key (kbd "<backtab>") #'just-untab-region)
-  (local-set-key (kbd "C-c C-'") #'just-edit-recipe))
+  (local-set-key (kbd "C-c C-'") #'just-src-edit))
 
 ;;; Recipe body editing
 
-(defvar-local just-edit--original-buffer nil)
-(put 'just-edit--original-buffer 'permanent-local t)
+(defvar-local just-src-edit--original-buffer nil)
+(put 'just-src-edit--original-buffer 'permanent-local t)
 
-(defvar-local just-edit--beg-marker nil)
-(put 'just-edit--beg-marker 'permanent-local t)
+(defvar-local just-src-edit--beg-marker nil)
+(put 'just-src-edit--beg-marker 'permanent-local t)
 
-(defvar-local just-edit--end-marker nil)
-(put 'just-edit--end-marker 'permanent-local t)
+(defvar-local just-src-edit--end-marker nil)
+(put 'just-src-edit--end-marker 'permanent-local t)
 
-(defvar-local just-edit--indentation nil)
-(put 'just-edit--indentation 'permanent-local t)
+(defvar-local just-src-edit--indentation nil)
+(put 'just-src-edit--indentation 'permanent-local t)
 
-(defvar-local just-edit--recipe-name nil)
-(put 'just-edit--recipe-name 'permanent-local t)
+(defvar-local just-src-edit--recipe-name nil)
+(put 'just-src-edit--recipe-name 'permanent-local t)
 
-(defun just--find-recipe-bounds ()
+(defun just-src-edit--find-recipe-bounds ()
   "Find the bounds of the recipe at point.
 Returns (recipe-name body-start body-end) or nil if not in a recipe."
   (save-excursion
@@ -303,7 +303,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
                    (<= start-pos body-end))
           (list task-name body-start body-end))))))
 
-(defun just--calculate-indentation (start end)
+(defun just-src-edit--calculate-indentation (start end)
   "Calculate the common indentation for recipe body between START and END."
   (save-excursion
     (goto-char start)
@@ -314,7 +314,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
         (forward-line 1))
       (if (= min-indent most-positive-fixnum) 0 min-indent))))
 
-(defun just--remove-indentation (content indentation)
+(defun just-src-edit--remove-indentation (content indentation)
   "Remove INDENTATION spaces from each line of CONTENT."
   (with-temp-buffer
     (insert content)
@@ -326,7 +326,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
       (forward-line 1))
     (buffer-string)))
 
-(defun just--add-indentation (content indentation)
+(defun just-src-edit--add-indentation (content indentation)
   "Add INDENTATION spaces to each line of CONTENT."
   (with-temp-buffer
     (insert content)
@@ -338,17 +338,17 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
         (forward-line 1)))
     (buffer-string)))
 
-(defun just--detect-language-mode (content)
+(defun just-src-edit--detect-language-mode (content)
   "Detect the appropriate major mode for CONTENT.
 If content starts with shebang, use normal-mode, otherwise sh-mode."
   (if (string-match "^\\s-*#!" content)
       'normal-mode
     'sh-mode))
 
-(defun just-edit-recipe ()
+(defun just-src-edit ()
   "Edit the recipe body at point in a dedicated buffer."
   (interactive)
-  (let ((recipe-info (just--find-recipe-bounds)))
+  (let ((recipe-info (just-src-edit--find-recipe-bounds)))
     (unless recipe-info
       (user-error "Not in a recipe body"))
 
@@ -356,9 +356,9 @@ If content starts with shebang, use normal-mode, otherwise sh-mode."
            (body-start (nth 1 recipe-info))
            (body-end (nth 2 recipe-info))
            (original-buffer (current-buffer))
-           (indentation (just--calculate-indentation body-start body-end))
+           (indentation (just-src-edit--calculate-indentation body-start body-end))
            (content (buffer-substring-no-properties body-start body-end))
-           (clean-content (just--remove-indentation content indentation))
+           (clean-content (just-src-edit--remove-indentation content indentation))
            (edit-buffer (generate-new-buffer (format "*Just Recipe: %s*" recipe-name))))
 
       ;; Switch to edit buffer
@@ -376,61 +376,61 @@ If content starts with shebang, use normal-mode, otherwise sh-mode."
       (goto-char (point-min))
 
       ;; Detect and set appropriate mode
-      (funcall (just--detect-language-mode clean-content))
+      (funcall (just-src-edit--detect-language-mode clean-content))
 
       ;; Set up buffer-local variables
-      (setq just-edit--original-buffer original-buffer)
-      (setq just-edit--beg-marker (with-current-buffer original-buffer
-                                    (copy-marker body-start)))
-      (setq just-edit--end-marker (with-current-buffer original-buffer
-                                    (copy-marker body-end t)))
-      (setq just-edit--indentation indentation)
-      (setq just-edit--recipe-name recipe-name)
+      (setq just-src-edit--original-buffer original-buffer)
+      (setq just-src-edit--beg-marker (with-current-buffer original-buffer
+                                        (copy-marker body-start)))
+      (setq just-src-edit--end-marker (with-current-buffer original-buffer
+                                        (copy-marker body-end t)))
+      (setq just-src-edit--indentation indentation)
+      (setq just-src-edit--recipe-name recipe-name)
 
       ;; Set up key bindings
-      (local-set-key (kbd "C-x C-s") #'just-edit-save)
-      (local-set-key (kbd "C-c C-'") #'just-edit-sync-and-exit)
-      (local-set-key (kbd "C-c C-k") #'just-edit-abort)
+      (local-set-key (kbd "C-x C-s") #'just-src-edit-save)
+      (local-set-key (kbd "C-c C-'") #'just-src-edit-sync-and-exit)
+      (local-set-key (kbd "C-c C-k") #'just-src-edit-abort)
 
       ;; Set up save hook
-      (add-hook 'write-contents-functions #'just-edit-save nil t)
+      (add-hook 'write-contents-functions #'just-src-edit-save nil t)
 
       ;; Show helpful message
       (message "Edit recipe '%s'. C-c C-' to sync and exit, C-x C-s to save, C-c C-k to abort" recipe-name))))
 
-(defun just-edit-save ()
+(defun just-src-edit-save ()
   "Save the edited recipe back to the original buffer and file."
   (interactive)
-  (just--sync-to-original t))
+  (just-src-edit--sync-to-original t))
 
-(defun just-edit-sync-and-exit ()
+(defun just-src-edit-sync-and-exit ()
   "Sync changes to original buffer and exit edit buffer."
   (interactive)
-  (just--sync-to-original nil)
+  (just-src-edit--sync-to-original nil)
   (quit-window t)
   (message "Synced changes to original buffer"))
 
-(defun just-edit-abort ()
+(defun just-src-edit-abort ()
   "Abort editing without saving changes."
   (interactive)
   (quit-window t))
 
-(defun just--sync-to-original (save-file)
+(defun just-src-edit--sync-to-original (save-file)
   "Sync the edited content back to the original buffer.
 If SAVE-FILE is non-nil, also save the original buffer."
-  (unless (and just-edit--original-buffer
-               (buffer-live-p just-edit--original-buffer))
+  (unless (and just-src-edit--original-buffer
+               (buffer-live-p just-src-edit--original-buffer))
     (error "Original buffer no longer exists"))
 
   (let ((content (buffer-string))
-        (original-buf just-edit--original-buffer)
-        (beg just-edit--beg-marker)
-        (end just-edit--end-marker)
-        (indent just-edit--indentation))
+        (original-buf just-src-edit--original-buffer)
+        (beg just-src-edit--beg-marker)
+        (end just-src-edit--end-marker)
+        (indent just-src-edit--indentation))
 
     (with-current-buffer original-buf
       (save-excursion
-        (let ((indented-content (just--add-indentation content indent)))
+        (let ((indented-content (just-src-edit--add-indentation content indent)))
           (goto-char beg)
           (delete-region beg end)
           (insert indented-content)
