@@ -424,7 +424,7 @@ If SAVE-FILE is non-nil, also save the original buffer."
                (buffer-live-p just-src-edit--original-buffer))
     (error "Original buffer no longer exists"))
 
-  (let ((content (buffer-string))
+  (let ((content (string-trim-right (buffer-string) "\n"))
         (original-buf just-src-edit--original-buffer)
         (beg just-src-edit--beg-marker)
         (end just-src-edit--end-marker)
