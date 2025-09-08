@@ -242,7 +242,7 @@ Argument N number of untabs to perform"
   (setq-local indent-line-function 'just-indent-line)
   (local-set-key (kbd "DEL") #'just-backspace-whitespace-to-tab-stop)
   (local-set-key (kbd "<backtab>") #'just-untab-region)
-  (local-set-key (kbd "C-c C-'") #'just-src-edit))
+  (local-set-key (kbd "C-c '") #'just-src-edit))
 
 ;;; Recipe body editing
 
@@ -391,14 +391,14 @@ If content starts with shebang, use `normal-mode', otherwise `sh-mode'."
 
       ;; Set up key bindings
       (local-set-key (kbd "C-x C-s") #'just-src-edit-save)
-      (local-set-key (kbd "C-c C-'") #'just-src-edit-sync-and-exit)
+      (local-set-key (kbd "C-c '") #'just-src-edit-sync-and-exit)
       (local-set-key (kbd "C-c C-k") #'just-src-edit-abort)
 
       ;; Set up save hook
       (add-hook 'write-contents-functions #'just-src-edit-save nil t)
 
       ;; Show helpful message
-      (message "Edit recipe '%s'. C-c C-' to sync and exit, C-x C-s to save, C-c C-k to abort" recipe-name))))
+      (message "Edit recipe '%s'. C-c ' to sync and exit, C-x C-s to save, C-c C-k to abort" recipe-name))))
 
 (defun just-src-edit-save ()
   "Save the edited recipe back to the original buffer and file."
