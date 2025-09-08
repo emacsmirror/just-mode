@@ -331,7 +331,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
 
 (defun just-src-edit--remove-indentation (content indentation)
   "Remove INDENTATION spaces from each line of CONTENT."
-  (let ((lines (string-lines content)))
+  (let ((lines (split-string content "\n")))
     (mapconcat
      (lambda (line)
        (if (string-match-p "^\\s-*$" line)
@@ -345,7 +345,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
 
 (defun just-src-edit--add-indentation (content indentation)
   "Add INDENTATION spaces to each line of CONTENT."
-  (let ((lines (string-lines content))
+  (let ((lines (split-string content "\n"))
         (indent-str (make-string indentation ?\s)))
     (mapconcat
      (lambda (line)
