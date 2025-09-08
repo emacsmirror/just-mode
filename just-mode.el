@@ -280,23 +280,24 @@ Argument N number of untabs to perform"
 Returns (recipe-name body-start body-end) or nil if not in a recipe."
   (save-excursion
     (let ((start-pos (point))
+          (task-regexp "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")
           task-name body-start body-end)
 
       ;; Find the task we're currently in using the same regex as imenu
       ;; Go back to find a task line
       (while (and (not (bobp))
-                  (not (looking-at "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
+                  (not (looking-at task-regexp)))
         (forward-line -1))
 
-      ;; If we found a task line
-      (when (looking-at "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")
+      ;; Task line found
+      (when (looking-at task-regexp)
         (setq task-name (match-string 1))
         (setq body-start (line-beginning-position 2))
 
         ;; Find the end of this task by looking for the next task
         (forward-line 1)
         (while (and (not (eobp))
-                    (not (looking-at "^@?\\([A-Z_a-z][0-9A-Z_a-z-]*\\).*:[^=]")))
+                    (not (looking-at task-regexp)))
           (forward-line 1))
 
         ;; Go back to find the last non-empty line before the next task
@@ -336,7 +337,7 @@ Returns (recipe-name body-start body-end) or nil if not in a recipe."
        (if (string-match-p "^\\s-*$" line)
            line
          (if (and (>= (length line) indentation)
-                  (string-match-p (concat "^ \\{" (number-to-string indentation) "\\}") line))
+                  (string-prefix-p (make-string indentation ?\s) line))
              (substring line indentation)
            line)))
      lines
