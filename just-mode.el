@@ -455,7 +455,6 @@ If SAVE-FILE is non-nil, also save the original buffer."
         (save-buffer)))
 
     (set-buffer-modified-p nil)))
-
 
 (provide 'just-mode)
 
