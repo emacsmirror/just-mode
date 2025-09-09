@@ -163,7 +163,7 @@ Argument N number of untabs to perform"
   (let ((exit-code (call-process just-executable nil nil nil "--unstable" "--fmt")))
     (if (eq exit-code 0)
         (revert-buffer :ignore-auto :noconfirm)
-      (message "Formatted")
+        (message "Formatted")
       (message "Format failed with exit code %s" exit-code))))
 
 ;; from https://www.emacswiki.org/emacs/BackspaceWhitespaceToTabStop
