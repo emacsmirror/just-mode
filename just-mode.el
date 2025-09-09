@@ -297,8 +297,8 @@ Returns (task-name body-start body-end) or nil if not in a task."
         ;; Find the next line with no indentation (column 0)
         (forward-line 1)
         (while (and (not (eobp))
-                    (not (and (not (looking-at "^\\s-*$"))    ; not empty line
-                              (looking-at "^[^ \\t]"))))     ; starts at column 0
+                    (not (and (not (looking-at "^\\s-*$")) ; not empty line
+                              (looking-at "^[^ \t\n]"))))  ; starts at column 0
           (forward-line 1))
 
         ;; Go back to find the last non-empty line before the unindented line
@@ -438,7 +438,7 @@ If SAVE-FILE is non-nil, also save the original buffer."
                (buffer-live-p just-src-edit--original-buffer))
     (error "Original buffer no longer exists"))
 
-  (let ((content (string-trim-right (buffer-string) "\n"))
+  (let ((content (string-trim-right (buffer-string) "\n+"))
         (original-buf just-src-edit--original-buffer)
         (beg just-src-edit--beg-marker)
         (end just-src-edit--end-marker)
