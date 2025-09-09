@@ -294,13 +294,14 @@ Returns (task-name body-start body-end) or nil if not in a task."
         (setq task-name (match-string 1))
         (setq body-start (line-beginning-position 2))
 
-        ;; Find the end of this task by looking for the next task
+        ;; Find the next line with no indentation (column 0)
         (forward-line 1)
         (while (and (not (eobp))
-                    (not (looking-at task-regexp)))
+                    (not (and (not (looking-at "^\\s-*$"))    ; not empty line
+                              (looking-at "^[^ \\t]"))))     ; starts at column 0
           (forward-line 1))
 
-        ;; Go back to find the last non-empty line before the next task
+        ;; Go back to find the last non-empty line before the unindented line
         (forward-line -1)
         (while (and (> (point) body-start)
                     (looking-at "^\\s-*$"))
