@@ -189,7 +189,7 @@ Argument N number of untabs to perform"
           (call-interactively #'backward-delete-char))))))
 
 (defun just-indent-line ()
-  "Indent bodies of rules by the previous indent, or by `tab-width'."
+  "Indent bodies of rules by the previous indent, or by `just-indent-offset'."
   (interactive)
   (and abbrev-mode (= (char-syntax (preceding-char)) ?w)
        (expand-abbrev))
@@ -208,7 +208,7 @@ Argument N number of untabs to perform"
                 (previous-line-contents (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
                 (previous-line-is-rule (string-match "^[^ \t#:][^#:]*:\\([^=].*\\|$\\)" previous-line-contents)))
            (cond (previous-line-is-empty (prog-first-column))
-                 (previous-line-is-rule (+ (prog-first-column) tab-width))
+                 (previous-line-is-rule (+ (prog-first-column) just-indent-offset))
                  (t previous-indentation))))))))
 
 ;;;###autoload
